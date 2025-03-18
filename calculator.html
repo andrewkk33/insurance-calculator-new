@@ -1,77 +1,177 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>精准保费计算器</title>
+    <title>企业级保费计算器</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f2f5; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { color: #1a73e8; text-align: center; margin-bottom: 30px; font-size: 24px; }
-        .input-group { margin: 20px 0; }
-        label { display: block; margin-bottom: 10px; color: #5f6368; font-weight: 500; }
-        input { width: 100%; padding: 12px; border: 2px solid #dadce0; border-radius: 8px; font-size: 16px; }
-        button { width: 100%; background: #1a73e8; color: white; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #1557b0; }
-        .result { margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
-        .result h3 { color: #34a853; margin: 10px 0; }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 500;
+        }
+        input[type="date"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e4e8;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        #result {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 18px;
+            color: #2c3e50;
+            text-align: center;
+        }
+        .note {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 15px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔢 精准保费计算器</h1>
+        <h1>企业员工增员保费计算器</h1>
         
         <div class="input-group">
-            <label>📅 生效日期：</label>
+            <label for="effectiveDate">保单生效日期：</label>
             <input type="date" id="effectiveDate" required>
         </div>
 
         <div class="input-group">
-            <label>👥 增员人数：</label>
-            <input type="number" id="personCount" value="1" min="1">
+            <label for="personCount">新增员工人数：</label>
+            <input type="number" id="personCount" min="1" value="1" required>
         </div>
 
-        <button onclick="calculate()">🚀 立即计算</button>
+        <button onclick="calculate()">立即计算</button>
         
-        <div class="result" id="result"></div>
+        <div id="result"></div>
+        <div class="note">计算结果精确到分（小数点后两位）</div>
     </div>
 
 <script>
-// 企业级参数配置
+// 企业标准配置参数
 const ENTERPRISE_CONFIG = {
-    policyEnd: '2025-05-11',      // 保单结束日
-    annualPremium: 800.00, // 精确到小数点后15位
-    roundingRule: 'HALF_UP'       // 四舍五入规则
+    annualPremium: 800.00,    // 年保费（单位：元）
+    policyEndDate: '2025-05-11' // 保单终止日期
+}
+
+// 银行级精度计算函数
+function preciseMultiply(a, b) {
+    const aDecimals = (a.toString().split('.')[1] || '').length;
+    const bDecimals = (b.toString().split('.')[1] || '').length;
+    const multiplier = Math.pow(10, aDecimals + bDecimals);
+    return (a * b * multiplier) / multiplier;
+}
+
+// 企业标准金额格式化
+function formatCurrency(value) {
+    return (Math.round(value * 100) / 100).toFixed(2);
 }
 
 function calculate() {
+    // 重置显示
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = '';
+
     // 获取输入值
     const effectiveDate = new Date(document.getElementById('effectiveDate').value);
-    const personCount = parseInt(document.getElementById('personCount').value) || 1;
-    const endDate = new Date(ENTERPRISE_CONFIG.policyEnd);
+    const personCount = parseInt(document.getElementById('personCount').value);
 
-    // 核心计算逻辑
-    const timeDiff = endDate.getTime() - effectiveDate.getTime();
-    const days = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1; // 包含当天的正确算法
-    
-    // 银行级精度计算
+    // 验证输入有效性
+    if (isNaN(effectiveDate.getTime())) {
+        resultDiv.innerHTML = '<span style="color:#e74c3c;">错误：请选择生效日期</span>';
+        return;
+    }
+
+    // 计算关键参数
+    const policyEndDate = new Date(ENTERPRISE_CONFIG.policyEndDate);
     const dailyRate = ENTERPRISE_CONFIG.annualPremium / 365;
-    const amountPerPerson = preciseMultiply(days, dailyRate);
-    const totalAmount = preciseMultiply(amountPerPerson, personCount);
 
-    // 显示结果
-    document.getElementById('result').innerHTML = `
-        <p>📆 剩余天数：${days}天</p>
-        <p>👥 增员人数：${personCount}人</p>
-        <h3>💵 应缴保费：¥${totalAmount.toFixed(2)}</h3>
-    `;
+    // 天数计算（包含生效当天）
+    const timeDiff = policyEndDate.getTime() - effectiveDate.getTime();
+    const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+
+    // 验证天数合理性
+    if (days <= 0) {
+        resultDiv.innerHTML = `<span style="color:#e74c3c;">错误：生效日期需早于保单终止日</span>`;
+        return;
+    }
+
+    // 企业级精确计算
+    try {
+        const totalDays = preciseMultiply(days, personCount);
+        const rawAmount = preciseMultiply(totalDays, dailyRate);
+        const finalAmount = formatCurrency(rawAmount);
+
+        // 结果显示
+        resultDiv.innerHTML = `
+            <div style="color:#27ae60; font-weight:bold;">
+                💰 计算结果：<br>
+                <span style="font-size:1.2em;">¥${finalAmount} 元</span>
+            </div>
+            <div style="margin-top:15px; color:#7f8c8d;">
+                计算明细：<br>
+                • 有效天数：${days}天 × ${personCount}人<br>
+                • 每日费率：¥${dailyRate.toFixed(6)}元/人天
+            </div>
+        `;
+    } catch (error) {
+        resultDiv.innerHTML = `<span style="color:#e74c3c;">系统错误：${error.message}</span>`;
+    }
 }
 
-// 高精度乘法函数
-function preciseMultiply(a, b) {
-    const factor = Math.pow(10, 15);
-    return (Math.round(a * factor) * Math.round(b * factor)) / (factor * factor);
-}
+// 设置默认日期为明天
+const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
+document.getElementById('effectiveDate').value = tomorrow.toISOString().split('T')[0];
 </script>
 </body>
 </html>
