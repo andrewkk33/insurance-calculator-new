@@ -5,29 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>企业级保费计算器（精准版）</title>
     <style>
-        /* 样式保持不变 */
+        .calculator {
+            background: #f5f7fa;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        input, button {
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e6f7ff;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
-    <!-- HTML结构保持不变 -->
+    <div class="calculator">
+        <h2>企业保费计算器</h2>
+        <input type="date" id="effectiveDate" placeholder="生效日期">
+        <input type="number" id="personCount" placeholder="新增人数" min="1">
+        <button onclick="calculatePremium()">立即计算</button>
+        <div class="result" id="result"></div>
+    </div>
 
 <script>
-// ================= 军工级配置 =================
+// 军工级配置参数
 const ENTERPRISE_CONFIG = {
-    annualPremium: 800.00,     // 精确匹配企业系统
+    annualPremium: 800.00,     // 精确到分
     policyEndDate: '2025-05-11',
-    decimalMode: "bankers"     // 严格银行家舍入
+    decimalMode: "bankers"     // 银行家舍入规则
 };
 
-// ================= 原子级计算逻辑 =================
+// 原子级计算逻辑
 function calculatePremium() {
     try {
-        // 输入验证保持不变...
+        // 输入验证
+        const effectiveDate = new Date(document.getElementById('effectiveDate').value);
+        const personCount = parseInt(document.getElementById('personCount').value) || 0;
+        
+        if (!effectiveDate || isNaN(effectiveDate.getTime())) {
+            throw new Error("请选择有效日期");
+        }
+        if (personCount < 1) {
+            throw new Error("人数必须大于0");
+        }
 
-        // 企业级天数计算（包含生效当日）
+        // 企业级天数计算（含生效当日）
         const endDate = new Date(ENTERPRISE_CONFIG.policyEndDate);
+        endDate.setHours(23,59,59,999); // 包含当天完整时间
         const timeDiff = endDate - effectiveDate;
-        const days = Math.ceil(timeDiff / 86400000) + 1; 
+        const days = Math.ceil(timeDiff / 86400000); // 自然日计算
 
         // 金融级计算流程
         const preciseDailyRate = ENTERPRISE_CONFIG.annualPremium / 365;
@@ -40,7 +81,20 @@ function calculatePremium() {
         // 最终金额计算（禁用中间舍入）
         const total = (parseFloat(perPerson) * personCount).toFixed(2);
 
-        // 结果输出保持不变...
+        // 专业级结果展示
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `
+            <h3>💰 应增保费：¥ ${total}</h3>
+            <p>计算明细：</p>
+            <ul>
+                <li>有效天数：${days} 天</li>
+                <li>每日费率：¥ ${preciseDailyRate.toFixed(6)}/人天</li>
+                <li>单人保费：¥ ${perPerson}</li>
+                <li>人数计算：${personCount} 人</li>
+            </ul>
+        `;
+    } catch (error) {
+        alert(error.message);
     }
 }
 </script>
