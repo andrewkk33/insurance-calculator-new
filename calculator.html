@@ -1,60 +1,186 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>企业级保费计算器</title>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业级保费计算器（精准版）</title>
     <style>
-        /* 保持原有样式不变 */
+        /* 移动端优化样式 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #212529;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1a73e8;
+            font-size: 24px;
+            text-align: center;
+            margin: 0 0 25px 0;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.15s;
+        }
+        input:focus {
+            border-color: #1a73e8;
+            outline: none;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        button:hover {
+            background: #1557b0;
+        }
+        #result {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .calculation-detail {
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+        .error-message {
+            color: #dc3545;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fff0f3;
+        }
     </style>
 </head>
 <body>
-    <!-- 保持HTML结构不变 -->
+    <div class="container">
+        <h1>企业员工增员保费计算器</h1>
+        
+        <div class="input-group">
+            <label for="effectiveDate">🕒 保单生效日期：</label>
+            <input type="date" id="effectiveDate" required>
+        </div>
+
+        <div class="input-group">
+            <label for="personCount">👥 新增员工人数：</label>
+            <input type="number" id="personCount" min="1" value="1" required>
+        </div>
+
+        <button onclick="calculatePremium()">立即计算</button>
+        
+        <div id="result"></div>
+    </div>
 
 <script>
-// 企业系统逆向参数（通过案例校准）
+// 企业级配置参数
 const ENTERPRISE_CONFIG = {
-    annualPremium: 800.00,
-    policyEndDate: '2025-05-11',
-    roundingMethod: 'perPerson' // 关键参数：按人独立舍入
+    annualPremium: 800.00,     // 年保费（精确值）
+    policyEndDate: '2025-05-11',// 保单到期日
+    decimalPrecision: 2        // 小数位精度
+};
+
+// 银行家舍入法
+function bankerRounding(num, decimals) {
+    const factor = Math.pow(10, decimals);
+    const rounded = Math.round(num * factor + 'e' + decimals) / factor;
+    return Number(rounded.toFixed(decimals));
 }
 
-// 逆向工程的核心计算逻辑
-function enterpriseCalculation(effectiveDate, personCount) {
-    const endDate = new Date(ENTERPRISE_CONFIG.policyEndDate);
-    
-    // 企业实际天数计算（含生效当天）
-    const days = Math.ceil((endDate - effectiveDate) / (1000*3600*24)) + 1;
-    
-    // 按人独立计算（企业系统逻辑）
-    const perPerson = (ENTERPRISE_CONFIG.annualPremium / 365) * days;
-    const roundedPerPerson = Number(perPerson.toFixed(2)); // 企业舍入点
-    
-    // 最终金额计算
-    return preciseMultiply(roundedPerPerson, personCount);
+function calculatePremium() {
+    // 初始化结果区域
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = '';
+
+    try {
+        // 获取输入值
+        const effectiveDate = new Date(document.getElementById('effectiveDate').value);
+        const personCount = parseInt(document.getElementById('personCount').value);
+
+        // 输入验证
+        if (!effectiveDate.getTime()) {
+            throw new Error('请选择有效日期');
+        }
+        if (personCount < 1) {
+            throw new Error('人数至少为1人');
+        }
+
+        // 计算有效天数（包含当天）
+        const endDate = new Date(ENTERPRISE_CONFIG.policyEndDate);
+        const timeDiff = endDate - effectiveDate;
+        const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+
+        if (days < 0) {
+            throw new Error('生效日期不能晚于保单到期日');
+        }
+
+        // 企业级计算流程
+        const dailyRate = ENTERPRISE_CONFIG.annualPremium / 365;
+        const perPerson = bankerRounding(dailyRate * days, ENTERPRISE_CONFIG.decimalPrecision);
+        const totalAmount = bankerRounding(perPerson * personCount, ENTERPRISE_CONFIG.decimalPrecision);
+
+        // 构建结果显示
+        resultDiv.innerHTML = `
+            <div style="color: #228B22; font-size: 1.2em;">
+                💰 应增保费：¥ ${totalAmount.toFixed(2)}
+            </div>
+            <div class="calculation-detail">
+                <div>计算明细：</div>
+                <div>▪ 有效天数：${days} 天</div>
+                <div>▪ 每日费率：¥ ${dailyRate.toFixed(6)}/人天</div>
+                <div>▪ 单人保费：¥ ${perPerson.toFixed(2)}</div>
+                <div>▪ 人数计算：${personCount} 人</div>
+            </div>
+        `;
+
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="error-message">
+                ⚠️ 错误：${error.message}
+            </div>
+        `;
+    }
 }
 
-function calculate() {
-    // ...（输入验证部分保持原样）...
-
-    // 使用逆向工程逻辑
-    const finalAmount = enterpriseCalculation(effectiveDate, personCount);
+// 设置默认日期为明天
+(function initDefaultDate() {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
     
-    // 结果显示（新增企业级验证）
-    resultDiv.innerHTML = `
-        <div style="color:#27ae60;">
-            ✅ 与企业系统一致：<br>
-            <span style="font-size:1.3em;">¥${finalAmount.toFixed(2)}</span>
-        </div>
-        <div style="margin-top:15px; color:#7f8c8d;">
-            逆向工程逻辑：<br>
-            • 单人费用：¥${(800/365*54).toFixed(4)} → ¥118.36<br>
-            • 双人计算：118.36 × 2 = ¥236.72
-        </div>
-    `;
-}
-
-// 保持其他辅助函数不变
+    const dateString = tomorrow.toISOString().split('T')[0];
+    document.getElementById('effectiveDate').value = dateString;
+})();
 </script>
 </body>
 </html>
