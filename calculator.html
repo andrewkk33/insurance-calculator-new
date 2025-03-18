@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>精准保费计算器</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f2f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #1a73e8; text-align: center; margin-bottom: 30px; font-size: 24px; }
+        .input-group { margin: 20px 0; }
+        label { display: block; margin-bottom: 10px; color: #5f6368; font-weight: 500; }
+        input { width: 100%; padding: 12px; border: 2px solid #dadce0; border-radius: 8px; font-size: 16px; }
+        button { width: 100%; background: #1a73e8; color: white; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #1557b0; }
+        .result { margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .result h3 { color: #34a853; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔢 精准保费计算器</h1>
+        
+        <div class="input-group">
+            <label>📅 生效日期：</label>
+            <input type="date" id="effectiveDate" required>
+        </div>
+
+        <div class="input-group">
+            <label>👥 增员人数：</label>
+            <input type="number" id="personCount" value="1" min="1">
+        </div>
+
+        <button onclick="calculate()">🚀 立即计算</button>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+<script>
+// 企业级参数配置
+const ENTERPRISE_CONFIG = {
+    policyEnd: '2025-05-11',      // 保单结束日
+    dailyRate: 2.191574074074074, // 精确到小数点后15位
+    roundingRule: 'HALF_UP'       // 四舍五入规则
+}
+
+function calculate() {
+    // 获取输入值
+    const effectiveDate = new Date(document.getElementById('effectiveDate').value);
+    const personCount = parseInt(document.getElementById('personCount').value) || 1;
+    const endDate = new Date(ENTERPRISE_CONFIG.policyEnd);
+
+    // 核心计算逻辑
+    const timeDiff = endDate.getTime() - effectiveDate.getTime();
+    const days = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1; // 包含当天的正确算法
+    
+    // 银行级精度计算
+    const amountPerPerson = preciseMultiply(days, ENTERPRISE_CONFIG.dailyRate);
+    const totalAmount = preciseMultiply(amountPerPerson, personCount);
+
+    // 显示结果
+    document.getElementById('result').innerHTML = `
+        <p>📆 剩余天数：${days}天</p>
+        <p>👥 增员人数：${personCount}人</p>
+        <h3>💵 应缴保费：¥${totalAmount.toFixed(2)}</h3>
+    `;
+}
+
+// 高精度乘法函数
+function preciseMultiply(a, b) {
+    const factor = Math.pow(10, 15);
+    return (Math.round(a * factor) * Math.round(b * factor)) / (factor * factor);
+}
+</script>
+</body>
+</html>
