@@ -40,7 +40,7 @@
 // 企业级参数配置
 const ENTERPRISE_CONFIG = {
     policyEnd: '2025-05-11',      // 保单结束日
-    dailyRate: 2.191574074074074, // 精确到小数点后15位
+    annualPremium: 800.00, // 精确到小数点后15位
     roundingRule: 'HALF_UP'       // 四舍五入规则
 }
 
@@ -55,7 +55,8 @@ function calculate() {
     const days = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1; // 包含当天的正确算法
     
     // 银行级精度计算
-    const amountPerPerson = preciseMultiply(days, ENTERPRISE_CONFIG.dailyRate);
+    const dailyRate = ENTERPRISE_CONFIG.annualPremium / 365;
+    const amountPerPerson = preciseMultiply(days, dailyRate);
     const totalAmount = preciseMultiply(amountPerPerson, personCount);
 
     // 显示结果
