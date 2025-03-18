@@ -103,56 +103,49 @@
     </div>
 
 <script>
-// 企业级配置参数
+// ================= 企业级配置 =================
 const ENTERPRISE_CONFIG = {
-    annualPremium: 800.00,     // 年保费（精确值）
+    annualPremium: 800.00,     // 年保费（精确到分）
     policyEndDate: '2025-05-11',// 保单到期日
-    decimalPrecision: 2        // 小数位精度
+    decimalPrecision: 2        // 财务精度要求
 };
 
-// 银行家舍入法
-function bankerRounding(num, decimals) {
+// ================= 专业舍入函数 =================
+function bankerRounding(value, decimals) {
     const factor = Math.pow(10, decimals);
-    const rounded = Math.round(num * factor + 'e' + decimals) / factor;
-    return Number(rounded.toFixed(decimals));
+    const scaledValue = value * factor;
+    const roundedValue = Math.round(scaledValue);
+    return Number((roundedValue / factor).toFixed(decimals));
 }
 
+// ================= 核心计算逻辑 =================
 function calculatePremium() {
-    // 初始化结果区域
     const resultDiv = document.getElementById('result');
     resultDiv.innerHTML = '';
 
     try {
-        // 获取输入值
+        // 输入验证
         const effectiveDate = new Date(document.getElementById('effectiveDate').value);
         const personCount = parseInt(document.getElementById('personCount').value);
+        if (!effectiveDate.getTime()) throw new Error("请选择有效日期");
+        if (personCount < 1) throw new Error("人数至少为1人");
 
-        // 输入验证
-        if (!effectiveDate.getTime()) {
-            throw new Error('请选择有效日期');
-        }
-        if (personCount < 1) {
-            throw new Error('人数至少为1人');
-        }
-
-        // 计算有效天数（包含当天）
+        // 天数计算（包含当天）
         const endDate = new Date(ENTERPRISE_CONFIG.policyEndDate);
-        const timeDiff = endDate - effectiveDate;
+        const timeDiff = endDate.getTime() - effectiveDate.getTime();
         const days = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+        if (days < 0) throw new Error("生效日期不能晚于保单到期日");
 
-        if (days < 0) {
-            throw new Error('生效日期不能晚于保单到期日');
-        }
-
-        // 企业级计算流程
+        // 精准计算流程
         const dailyRate = ENTERPRISE_CONFIG.annualPremium / 365;
-        const perPerson = bankerRounding(dailyRate * days, ENTERPRISE_CONFIG.decimalPrecision);
-        const totalAmount = bankerRounding(perPerson * personCount, ENTERPRISE_CONFIG.decimalPrecision);
+        const intermediate = dailyRate * days;       // 保留原始精度
+        const perPerson = bankerRounding(intermediate, 4); // 中间结果保留4位小数
+        const total = bankerRounding(perPerson * personCount, 2); // 最终结果保留2位
 
-        // 构建结果显示
+        // 结果输出
         resultDiv.innerHTML = `
             <div style="color: #228B22; font-size: 1.2em;">
-                💰 应增保费：¥ ${totalAmount.toFixed(2)}
+                💰 应增保费：¥ ${total.toFixed(2)}
             </div>
             <div class="calculation-detail">
                 <div>计算明细：</div>
@@ -172,14 +165,10 @@ function calculatePremium() {
     }
 }
 
-// 设置默认日期为明天
-(function initDefaultDate() {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    
-    const dateString = tomorrow.toISOString().split('T')[0];
-    document.getElementById('effectiveDate').value = dateString;
+// ================= 初始化默认日期 =================
+(function init() {
+    const tomorrow = new Date(Date.now() + 86400000);
+    document.getElementById('effectiveDate').value = tomorrow.toISOString().split('T')[0];
 })();
 </script>
 </body>
